@@ -71,10 +71,10 @@ public final class HotelRepository {
     public List<MenuItem> findMenu(Connection c) throws SQLException {
         List<MenuItem> items = new ArrayList<>();
         try (PreparedStatement ps = c.prepareStatement(
-                "SELECT id, name, price FROM menu_items WHERE active = 1 ORDER BY id");
+                "SELECT id, name, price, category FROM menu_items WHERE active = 1 ORDER BY category DESC, name");
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                items.add(new MenuItem(rs.getInt("id"), rs.getString("name"), rs.getBigDecimal("price")));
+                items.add(new MenuItem(rs.getInt("id"), rs.getString("name"), rs.getBigDecimal("price"), rs.getString("category")));
             }
         }
         return items;
@@ -82,13 +82,13 @@ public final class HotelRepository {
 
     public MenuItem findMenuItem(Connection c, int itemId) throws SQLException {
         try (PreparedStatement ps = c.prepareStatement(
-                "SELECT id, name, price FROM menu_items WHERE id = ? AND active = 1")) {
+                "SELECT id, name, price, category FROM menu_items WHERE id = ? AND active = 1")) {
             ps.setInt(1, itemId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {
                     return null;
                 }
-                return new MenuItem(rs.getInt("id"), rs.getString("name"), rs.getBigDecimal("price"));
+                return new MenuItem(rs.getInt("id"), rs.getString("name"), rs.getBigDecimal("price"), rs.getString("category"));
             }
         }
     }

@@ -27,7 +27,7 @@ public final class HotelService {
     public static final int MAX_QUANTITY = 50;
 
     private static final Pattern CONTACT = Pattern.compile("[+0-9][0-9 \\-]{6,14}");
-    private static final List<String> GENDERS = List.of("Male", "Female", "Other");
+    private static final List<String> GENDERS = List.of("Male", "Female");
 
     private final Database db;
     private final HotelRepository repo = new HotelRepository();

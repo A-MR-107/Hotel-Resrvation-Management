@@ -10,7 +10,7 @@ import java.util.Locale;
 /** Renders a bill as fixed-width text (used by the bill window, printing and saving). */
 public final class BillFormatter {
 
-    public static final int WIDTH = 46;
+    public static final int WIDTH = 52;
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
 
     private BillFormatter() {
@@ -50,10 +50,10 @@ public final class BillFormatter {
         if (b.foodLines().isEmpty()) {
             sb.append("  (no orders)\n");
         } else {
-            sb.append(String.format("%-20s %5s %10s %10s%n", "Item", "Qty", "Price", "Amount"));
+            sb.append(String.format("%-24s %4s %10s %10s%n", "Item", "Qty", "Price", "Amount"));
             for (FoodLine line : b.foodLines()) {
-                sb.append(String.format("%-20s %5d %10s %10s%n",
-                        truncate(line.itemName(), 20), line.quantity(),
+                sb.append(String.format("%-24s %4d %10s %10s%n",
+                        truncate(line.itemName(), 24), line.quantity(),
                         plain(line.unitPrice()), plain(line.lineTotal())));
             }
         }

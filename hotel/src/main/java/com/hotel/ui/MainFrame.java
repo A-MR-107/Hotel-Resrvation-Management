@@ -12,53 +12,61 @@ import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.SwingConstants;
 
-/** Main window: sidebar navigation on the left, one screen at a time in the middle. */
+/** Main window: glass sidebar on the left, one screen at a time on a gradient background. */
 public final class MainFrame extends JFrame {
 
     private final CardLayout cards = new CardLayout();
     private final JPanel content = new JPanel(cards);
-    private final JPanel sidebar = new JPanel();
+    private final GlassPanel sidebar = new GlassPanel(24);
     private final Map<String, Screen> screens = new LinkedHashMap<>();
-    private final Map<String, JButton> navButtons = new LinkedHashMap<>();
+    private final Map<String, PillButton> navButtons = new LinkedHashMap<>();
     private String current;
 
     public MainFrame(HotelService service, String dbInfo) {
         super("Hotel Management System");
 
+        GradientPanel root = new GradientPanel();
+        root.setLayout(new BorderLayout(18, 0));
+        root.setBorder(UiSupport.pad(18));
+        setContentPane(root);
+
+        content.setOpaque(false);
+
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
-        sidebar.setBackground(UiSupport.SIDEBAR);
-        sidebar.setBorder(BorderFactory.createEmptyBorder(22, 14, 22, 14));
+        sidebar.setBorder(BorderFactory.createEmptyBorder(24, 16, 20, 16));
+        sidebar.setPreferredSize(new Dimension(230, 0));
+
         JLabel brand = new JLabel("Hotel Manager");
+        brand.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 20));
         brand.setForeground(Color.WHITE);
-        brand.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 18));
         brand.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel tagline = UiSupport.muted("Front desk");
+        tagline.setAlignmentX(Component.LEFT_ALIGNMENT);
         sidebar.add(brand);
-        sidebar.add(Box.createVerticalStrut(24));
+        sidebar.add(tagline);
+        sidebar.add(Box.createVerticalStrut(28));
 
         addScreen("dashboard", "Dashboard", new DashboardPanel(service, this::open));
         addScreen("checkin", "Check-in", new CheckinPanel(service));
         addScreen("food", "Food orders", new FoodPanel(service));
         addScreen("checkout", "Checkout & bill", new CheckoutPanel(service));
+
         sidebar.add(Box.createVerticalGlue());
+        JLabel status = UiSupport.muted("Database: " + dbInfo);
+        status.setFont(status.getFont().deriveFont(12f));
+        status.setAlignmentX(Component.LEFT_ALIGNMENT);
+        sidebar.add(status);
 
-        JLabel status = new JLabel("Database: " + dbInfo);
-        status.setForeground(UiSupport.MUTED);
-        status.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
-
-        getContentPane().setLayout(new BorderLayout());
-        getContentPane().add(sidebar, BorderLayout.WEST);
-        getContentPane().add(content, BorderLayout.CENTER);
-        getContentPane().add(status, BorderLayout.SOUTH);
+        root.add(sidebar, BorderLayout.WEST);
+        root.add(content, BorderLayout.CENTER);
 
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setMinimumSize(new Dimension(1000, 680));
-        setSize(1240, 780);
+        setMinimumSize(new Dimension(1100, 700));
+        setSize(1280, 800);
         setLocationRelativeTo(null);
         show("dashboard");
     }
@@ -67,16 +75,14 @@ public final class MainFrame extends JFrame {
         screens.put(key, screen);
         content.add((Component) screen, key);
 
-        JButton button = new JButton(label);
+        PillButton button = new PillButton(label, PillButton.Style.NAV);
         button.setAlignmentX(Component.LEFT_ALIGNMENT);
-        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
-        button.setHorizontalAlignment(SwingConstants.LEFT);
-        button.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
-        button.setFocusPainted(false);
+        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
+        button.setPreferredSize(new Dimension(200, 46));
         button.addActionListener(e -> show(key));
         navButtons.put(key, button);
         sidebar.add(button);
-        sidebar.add(Box.createVerticalStrut(6));
+        sidebar.add(Box.createVerticalStrut(8));
     }
 
     /** Opens a screen with a room preselected (used by the dashboard quick actions). */
@@ -89,12 +95,6 @@ public final class MainFrame extends JFrame {
         current = key;
         cards.show(content, key);
         screens.get(key).refresh();
-        navButtons.forEach((k, b) -> {
-            boolean active = k.equals(current);
-            b.setBackground(active ? UiSupport.ACCENT : UiSupport.SIDEBAR);
-            b.setForeground(Color.WHITE);
-            b.setOpaque(true);
-            b.setBorderPainted(false);
-        });
+        navButtons.forEach((k, b) -> b.setActive(k.equals(current)));
     }
 }

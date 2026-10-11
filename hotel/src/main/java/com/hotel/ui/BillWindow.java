@@ -4,15 +4,17 @@ import com.hotel.billing.BillFormatter;
 import com.hotel.billing.BillPrinter;
 import com.hotel.model.Bill;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
 import java.awt.FlowLayout;
 import java.awt.Insets;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import javax.swing.JButton;
+import javax.swing.BorderFactory;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -35,31 +37,38 @@ public final class BillWindow extends JFrame {
         text.setMargin(new Insets(18, 22, 18, 22));
         text.setCaretPosition(0);
 
-        JButton print = new JButton("Print...");
+        JScrollPane scroll = new JScrollPane(text);
+        scroll.setBorder(BorderFactory.createLineBorder(UiSupport.LINE));
+
+        PillButton print = new PillButton("Print...");
         print.addActionListener(e -> BillPrinter.print(this, this.bill));
-        JButton save = new JButton("Save as text...");
+        PillButton save = new PillButton("Save as text...", PillButton.Style.SECONDARY);
         save.addActionListener(e -> saveAsText());
-        JButton close = new JButton("Close");
+        PillButton close = new PillButton("Close", PillButton.Style.SECONDARY);
         close.addActionListener(e -> dispose());
 
         JPanel bar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        bar.setOpaque(false);
         bar.add(save);
         bar.add(print);
         bar.add(close);
 
-        getContentPane().setLayout(new BorderLayout());
-        getContentPane().add(new JScrollPane(text), BorderLayout.CENTER);
-        getContentPane().add(bar, BorderLayout.SOUTH);
+        JPanel root = new GradientPanel();
+        root.setLayout(new BorderLayout(0, 8));
+        root.setBorder(UiSupport.pad(16));
+        root.add(scroll, BorderLayout.CENTER);
+        root.add(bar, BorderLayout.SOUTH);
+        setContentPane(root);
 
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        setSize(560, 720);
+        setSize(580, 740);
         setLocationRelativeTo(parent);
     }
 
     private void saveAsText() {
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Save bill");
-        chooser.setSelectedFile(new java.io.File("bill-room-" + bill.room().number() + ".txt"));
+        chooser.setSelectedFile(new File("bill-room-" + bill.room().number() + ".txt"));
         if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
             return;
         }

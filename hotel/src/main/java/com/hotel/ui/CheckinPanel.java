@@ -4,101 +4,106 @@ import com.hotel.model.Guest;
 import com.hotel.model.Room;
 import com.hotel.service.HotelService;
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.util.List;
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
-/** Books a free room for one or two guests. */
+/** Books a free room for one or two guests. Rooms are chosen by room type. */
 final class CheckinPanel extends JPanel implements Screen {
 
     private final HotelService service;
-    private final JComboBox<Room> roomBox = new JComboBox<>();
-    private final JTextField name1 = new JTextField(24);
-    private final JTextField contact1 = new JTextField(24);
+    private final RoomPicker roomPicker;
+    private final JLabel chosenLabel = UiSupport.sectionHeading("No room selected");
+    private final JTextField name1 = new JTextField(22);
+    private final JTextField contact1 = new JTextField(22);
     private final JComboBox<String> gender1 = new JComboBox<>(HotelService.genders().toArray(String[]::new));
-    private final JTextField name2 = new JTextField(24);
-    private final JTextField contact2 = new JTextField(24);
+    private final JTextField name2 = new JTextField(22);
+    private final JTextField contact2 = new JTextField(22);
     private final JComboBox<String> gender2 = new JComboBox<>(HotelService.genders().toArray(String[]::new));
     private final JPanel guest2Section = new JPanel(new GridBagLayout());
     private final JLabel hint = UiSupport.muted(" ");
-    private final JButton checkInBtn = new JButton("Check in");
+    private final PillButton checkInBtn = new PillButton("Check in");
     private Integer wantedRoom;
 
     CheckinPanel(HotelService service) {
         this.service = service;
-        setLayout(new BorderLayout());
-        setBackground(UiSupport.BG);
-        setBorder(UiSupport.pad(20));
+        setLayout(new BorderLayout(0, 16));
+        setOpaque(false);
+        setBorder(UiSupport.pad(4));
+        add(UiSupport.title("Check-in"), BorderLayout.NORTH);
 
-        JPanel card = UiSupport.card();
-        card.setLayout(new BorderLayout(0, 16));
+        roomPicker = new RoomPicker("Free rooms", r -> !r.occupied(), this::onRoomPicked);
+        JPanel left = UiSupport.card();
+        left.setLayout(new BorderLayout());
+        left.setPreferredSize(new Dimension(430, 0));
+        left.add(roomPicker, BorderLayout.CENTER);
 
         JPanel form = new JPanel(new GridBagLayout());
-        form.setBackground(java.awt.Color.WHITE);
-        UiSupport.row(form, 0, "Room", roomBox);
+        form.setOpaque(false);
+        form.add(UiSupport.sectionHeading("Guest 1"), heading(0));
+        UiSupport.row(form, 1, "Full name", name1);
+        UiSupport.row(form, 2, "Contact number", contact1);
+        UiSupport.row(form, 3, "Gender", gender1);
 
-        GridBagConstraints c = new GridBagConstraints();
-        c.gridx = 0;
-        c.gridy = 1;
-        c.gridwidth = 2;
-        c.anchor = GridBagConstraints.WEST;
-        c.insets = new Insets(18, 0, 4, 0);
-        form.add(UiSupport.sectionHeading("Guest 1"), c);
-        UiSupport.row(form, 2, "Full name", name1);
-        UiSupport.row(form, 3, "Contact number", contact1);
-        UiSupport.row(form, 4, "Gender", gender1);
-
-        guest2Section.setBackground(java.awt.Color.WHITE);
-        GridBagConstraints g = new GridBagConstraints();
-        g.gridx = 0;
-        g.gridy = 0;
-        g.gridwidth = 2;
-        g.anchor = GridBagConstraints.WEST;
-        g.insets = new Insets(18, 0, 4, 0);
-        guest2Section.add(UiSupport.sectionHeading("Guest 2 (double room)"), g);
+        guest2Section.setOpaque(false);
+        guest2Section.add(UiSupport.sectionHeading("Guest 2 (double room)"), heading(0));
         UiSupport.row(guest2Section, 1, "Full name", name2);
         UiSupport.row(guest2Section, 2, "Contact number", contact2);
         UiSupport.row(guest2Section, 3, "Gender", gender2);
 
         GridBagConstraints gs = new GridBagConstraints();
         gs.gridx = 0;
-        gs.gridy = 5;
+        gs.gridy = 4;
         gs.gridwidth = 2;
         gs.fill = GridBagConstraints.HORIZONTAL;
         gs.weightx = 1;
         form.add(guest2Section, gs);
 
-        JPanel top = new JPanel(new BorderLayout());
-        top.setBackground(java.awt.Color.WHITE);
-        top.add(UiSupport.title("Check-in"), BorderLayout.NORTH);
-        top.add(form, BorderLayout.CENTER);
-        card.add(top, BorderLayout.CENTER);
+        for (java.awt.Component f : new java.awt.Component[]{name1, contact1, gender1, name2, contact2, gender2}) {
+            UiSupport.enterMovesNext((javax.swing.JComponent) f);
+        }
 
-        JButton clear = new JButton("Clear");
+        PillButton clear = new PillButton("Clear", PillButton.Style.SECONDARY);
         clear.addActionListener(e -> clearForm());
         checkInBtn.addActionListener(e -> checkIn());
-        JPanel bottom = new JPanel(new BorderLayout());
-        bottom.setBackground(java.awt.Color.WHITE);
-        bottom.add(hint, BorderLayout.WEST);
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        buttons.setBackground(java.awt.Color.WHITE);
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        buttons.setOpaque(false);
         buttons.add(clear);
         buttons.add(checkInBtn);
+        JPanel bottom = new JPanel(new BorderLayout());
+        bottom.setOpaque(false);
+        bottom.add(hint, BorderLayout.WEST);
         bottom.add(buttons, BorderLayout.EAST);
-        card.add(bottom, BorderLayout.SOUTH);
 
-        add(card, BorderLayout.NORTH);
+        JPanel right = UiSupport.card();
+        right.setLayout(new BorderLayout(0, 16));
+        right.add(chosenLabel, BorderLayout.NORTH);
+        right.add(form, BorderLayout.CENTER);
+        right.add(bottom, BorderLayout.SOUTH);
 
-        roomBox.addActionListener(e -> updateGuestTwo());
-        updateGuestTwo();
+        JPanel body = new JPanel(new BorderLayout(16, 0));
+        body.setOpaque(false);
+        body.add(left, BorderLayout.WEST);
+        body.add(right, BorderLayout.CENTER);
+        add(body, BorderLayout.CENTER);
+
+        updateGuestTwo(null);
+    }
+
+    private static GridBagConstraints heading(int row) {
+        GridBagConstraints c = new GridBagConstraints();
+        c.gridx = 0;
+        c.gridy = row;
+        c.gridwidth = 2;
+        c.anchor = GridBagConstraints.WEST;
+        c.insets = new Insets(10, 0, 4, 0);
+        return c;
     }
 
     @Override
@@ -109,25 +114,30 @@ final class CheckinPanel extends JPanel implements Screen {
     @Override
     public void refresh() {
         UiSupport.background(this, service::rooms, rooms -> {
-            UiSupport.fillRooms(roomBox, rooms, r -> !r.occupied(), wantedRoom);
+            roomPicker.setRooms(rooms, wantedRoom);
             wantedRoom = null;
-            hint.setText(roomBox.getItemCount() == 0 ? "No free rooms right now." : " ");
-            updateGuestTwo();
+            hint.setText(rooms.stream().anyMatch(r -> !r.occupied()) ? " " : "No free rooms right now.");
+            updateGuestTwo(roomPicker.selected());
         });
     }
 
-    private void updateGuestTwo() {
-        Room room = (Room) roomBox.getSelectedItem();
+    private void onRoomPicked(Room room) {
+        updateGuestTwo(room);
+    }
+
+    private void updateGuestTwo(Room room) {
         boolean two = room != null && room.type().twoGuests();
         setEnabledRecursive(guest2Section, two);
         guest2Section.setVisible(two);
         checkInBtn.setEnabled(room != null);
+        chosenLabel.setText(room == null ? "No room selected"
+                : "Room " + room.number() + "  -  " + room.type().name());
         revalidate();
         repaint();
     }
 
     private void checkIn() {
-        Room room = (Room) roomBox.getSelectedItem();
+        Room room = roomPicker.selected();
         if (room == null) {
             UiSupport.info(this, "Choose a free room first.");
             return;

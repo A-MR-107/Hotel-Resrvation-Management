@@ -2,6 +2,7 @@ package com.hotel.db;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -13,13 +14,46 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 
-/** Connection factory, schema setup and small transaction helpers. */
+/** Connection factory, schema setup, menu seeding and small transaction helpers. */
 public final class Database {
 
     /** A unit of database work that receives an open connection. */
     public interface SqlWork<T> {
         T apply(Connection c) throws SQLException;
     }
+
+    /** The menu. Each id is unique and every name appears only once. */
+    private static final String[][] MENU = {
+            {"1", "Veg Sandwich", "60", "FOOD"},
+            {"2", "Cheese Sandwich", "80", "FOOD"},
+            {"3", "Club Sandwich", "150", "FOOD"},
+            {"4", "Veg Burger", "80", "FOOD"},
+            {"5", "Chicken Burger", "120", "FOOD"},
+            {"6", "Margherita Pizza", "220", "FOOD"},
+            {"7", "Veg Pasta", "110", "FOOD"},
+            {"8", "Chicken Pasta", "150", "FOOD"},
+            {"9", "Veg Hakka Noodles", "110", "FOOD"},
+            {"10", "Chicken Hakka Noodles", "140", "FOOD"},
+            {"11", "Veg Fried Rice", "110", "FOOD"},
+            {"12", "Chicken Fried Rice", "140", "FOOD"},
+            {"13", "Paneer Tikka", "180", "FOOD"},
+            {"14", "Dal Tadka with Rice", "130", "FOOD"},
+            {"15", "Butter Naan", "35", "FOOD"},
+            {"16", "Masala Dosa", "90", "FOOD"},
+            {"17", "French Fries", "80", "FOOD"},
+            {"18", "Cheese Omelette", "70", "FOOD"},
+            {"19", "Masala Tea", "20", "DRINK"},
+            {"20", "Filter Coffee", "30", "DRINK"},
+            {"21", "Cold Coffee", "90", "DRINK"},
+            {"22", "Sweet Lassi", "60", "DRINK"},
+            {"23", "Masala Chaas", "40", "DRINK"},
+            {"24", "Fresh Lime Soda", "50", "DRINK"},
+            {"25", "Mineral Water", "25", "DRINK"},
+            {"26", "Orange Juice", "60", "DRINK"},
+            {"27", "Chocolate Milkshake", "110", "DRINK"},
+            {"28", "Hot Chocolate", "95", "DRINK"},
+            {"29", "Coca-Cola", "30", "DRINK"},
+    };
 
     private final String host;
     private final int port;
@@ -57,7 +91,7 @@ public final class Database {
         return host + ":" + port + "/" + name;
     }
 
-    /** Creates the database if needed, then creates tables and seed data. */
+    /** Creates the database if needed, then tables, upgrades and seed data. */
     public void initialize() throws SQLException, IOException {
         try (Connection c = DriverManager.getConnection(url(""), user, password);
              Statement st = c.createStatement()) {
@@ -71,6 +105,8 @@ public final class Database {
                     st.execute(sql);
                 }
             }
+            ensureMenuCategory(c);
+            seedMenu(c);
             seedRooms(c);
         }
     }
@@ -112,6 +148,47 @@ public final class Database {
                 throw new IOException("Missing resource " + path);
             }
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
+    /** Adds the category column to databases created by an older version. */
+    private static void ensureMenuCategory(Connection c) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement(
+                "SELECT COUNT(*) FROM information_schema.COLUMNS "
+                        + "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'menu_items' AND COLUMN_NAME = 'category'");
+             ResultSet rs = ps.executeQuery()) {
+            rs.next();
+            if (rs.getInt(1) > 0) {
+                return;
+            }
+        }
+        try (Statement st = c.createStatement()) {
+            st.execute("ALTER TABLE menu_items ADD COLUMN category VARCHAR(20) NOT NULL DEFAULT 'FOOD'");
+        }
+    }
+
+    /** Makes the menu table match MENU: names, prices and categories are replaced and stale items are hidden. */
+    private static void seedMenu(Connection c) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement(
+                "INSERT INTO menu_items (id, name, price, category, active) VALUES (?, ?, ?, ?, 1) "
+                        + "ON DUPLICATE KEY UPDATE name = VALUES(name), price = VALUES(price), "
+                        + "category = VALUES(category), active = 1")) {
+            StringBuilder ids = new StringBuilder();
+            for (String[] row : MENU) {
+                ps.setInt(1, Integer.parseInt(row[0]));
+                ps.setString(2, row[1]);
+                ps.setBigDecimal(3, new BigDecimal(row[2]));
+                ps.setString(4, row[3]);
+                ps.addBatch();
+                if (ids.length() > 0) {
+                    ids.append(',');
+                }
+                ids.append(row[0]);
+            }
+            ps.executeBatch();
+            try (Statement st = c.createStatement()) {
+                st.executeUpdate("UPDATE menu_items SET active = 0 WHERE id NOT IN (" + ids + ")");
+            }
         }
     }
 

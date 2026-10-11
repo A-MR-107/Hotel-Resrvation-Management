@@ -31,10 +31,11 @@ CREATE TABLE IF NOT EXISTS bookings (
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS menu_items (
-    id     INT           NOT NULL PRIMARY KEY,
-    name   VARCHAR(60)   NOT NULL,
-    price  DECIMAL(10,2) NOT NULL,
-    active TINYINT(1)    NOT NULL DEFAULT 1
+    id       INT           NOT NULL PRIMARY KEY,
+    name     VARCHAR(60)   NOT NULL,
+    price    DECIMAL(10,2) NOT NULL,
+    category VARCHAR(20)   NOT NULL DEFAULT 'FOOD',
+    active   TINYINT(1)    NOT NULL DEFAULT 1
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS food_orders (
@@ -54,9 +55,3 @@ INSERT IGNORE INTO room_types (code, name, price_per_day, capacity, description,
     ('DELUXE_DOUBLE', 'Deluxe Double', 3000.00, 2, '1 double bed, non-AC, free breakfast', 2),
     ('LUXURY_SINGLE', 'Luxury Single', 2200.00, 1, '1 single bed, AC, free breakfast', 3),
     ('DELUXE_SINGLE', 'Deluxe Single', 1200.00, 1, '1 single bed, non-AC, free breakfast', 4);
-
-INSERT IGNORE INTO menu_items (id, name, price, active) VALUES
-    (1, 'Sandwich', 50.00, 1),
-    (2, 'Pasta', 60.00, 1),
-    (3, 'Noodles', 70.00, 1),
-    (4, 'Coke', 30.00, 1);
